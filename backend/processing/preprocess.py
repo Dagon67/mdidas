@@ -1,6 +1,7 @@
 """
 Pré-processamento: balanço de branco, normalização de exposição, conversão LAB/HSV.
 """
+import io
 import numpy as np
 from PIL import Image
 import cv2
@@ -9,10 +10,19 @@ from skimage import exposure
 
 def load_image(bytes_io):
     """Carrega imagem a partir de bytes (BytesIO ou bytes)."""
-    arr = np.frombuffer(bytes_io, dtype=np.uint8)
+    if hasattr(bytes_io, "getvalue"):
+        data = bytes_io.getvalue()
+    elif hasattr(bytes_io, "read"):
+        data = bytes_io.read()
+    else:
+        data = bytes_io
+    if not data or len(data) == 0:
+        return None
+    data = bytes(data)
+    arr = np.frombuffer(data, dtype=np.uint8)
     img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if img is None:
-        pil = Image.open(bytes_io)
+        pil = Image.open(io.BytesIO(data))
         img = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
     return img
 
