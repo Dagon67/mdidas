@@ -36,14 +36,11 @@ async def analisar_cores(
     Fotos obrigatórias: rosto, braco_interno, cabelo. braco_externo opcional.
     """
     try:
-        # 1) Carregar e pré-processar
-        def read_file(f: UploadFile):
-            return f.file.read()
-
-        data_rosto = await read_file(rosto)
-        data_braco = await read_file(braco_interno)
-        data_cabelo = await read_file(cabelo)
-        data_braco_ext = await read_file(braco_externo) if braco_externo else None
+        # 1) Carregar e pré-processar (UploadFile.read() é async e retorna bytes)
+        data_rosto = await rosto.read()
+        data_braco = await braco_interno.read()
+        data_cabelo = await cabelo.read()
+        data_braco_ext = await braco_externo.read() if braco_externo else None
 
         pre_rosto = preprocess_pipeline(io.BytesIO(data_rosto))
         pre_braco = preprocess_pipeline(io.BytesIO(data_braco))
