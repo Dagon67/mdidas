@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Aprenda a tirar medidas – Formato do Corpo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+body { font-family: Arial, sans-serif; background:#0e1220; color:#eaeaff; margin:0; }
+.container { max-width:900px; margin:auto; padding:20px; }
+.card { background:#151b34; border-radius:14px; padding:20px; }
+h1 { margin-top:0; font-size:22px; }
+.hidden { display:none !important; }
+.user-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.user-bar span { font-size:14px; color:#9ca3af; }
+.user-bar .user-actions { display:flex; align-items:center; gap:12px; }
+.link-perfil { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; font-size:12px; color:#9ca3af; text-decoration:none; border-radius:8px; transition:color .2s, background .2s; }
+.link-perfil:hover { color:#eaeaff; background:rgba(55,65,81,.2); }
+.link-perfil svg { width:18px; height:18px; fill:currentColor; }
+.btn-sair { padding:6px 12px; font-size:12px; font-weight:500; color:#6b7280; background:transparent; border:1px solid rgba(107,114,128,.35); border-radius:8px; cursor:pointer; transition:color .2s, border-color .2s, background .2s; }
+.btn-sair:hover { color:#9ca3af; border-color:rgba(107,114,128,.5); background:rgba(55,65,81,.2); }
+.btn-voltar { margin-bottom:16px; padding:8px 16px; font-size:13px; background:transparent; color:#9ca3af; border:1px solid #2d3a70; border-radius:8px; cursor:pointer; text-decoration:none; display:inline-block; }
+.btn-voltar:hover { color:#eaeaff; border-color:#6b8cff; }
+.video-secao { margin-bottom:32px; }
+.video-secao h2 { font-size:18px; color:#6b8cff; margin:0 0 12px; }
+.video-wrap { position:relative; width:100%; max-width:560px; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:10px; background:#0d132a; }
+.video-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:0; border-radius:10px; }
+iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fixed!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;visibility:hidden!important; }
+</style>
+</head>
+<body>
+
+<div id="app" class="container hidden">
+  <div class="card">
+    <div class="user-bar">
+      <span id="userInfo">Olá</span>
+      <div class="user-actions">
+        <a href="perfil.html" class="link-perfil" aria-label="Perfil"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Perfil</a>
+        <button type="button" class="btn-sair" id="btnSair">Sair</button>
+      </div>
+    </div>
+    <a href="calculadora.html" class="btn-voltar">← Voltar</a>
+    <h1>Aprenda a tirar medidas</h1>
+    <p style="color:#9ca3af; margin-bottom:24px;">Assista aos vídeos para medir busto, cintura e quadril corretamente.</p>
+
+    <div class="video-secao">
+      <h2>Busto</h2>
+      <div class="video-wrap">
+        <iframe src="https://www.youtube.com/embed/9QZlhc7URrU?si=vJ2Vx0Fkkt9W7OV9&amp;controls=0" title="YouTube: como medir o busto" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+    </div>
+
+    <div class="video-secao">
+      <h2>Quadril</h2>
+      <div class="video-wrap">
+        <iframe src="https://www.youtube.com/embed/QXk-RklavZg?si=h-Wgxu_w1Gzv5t8t&amp;controls=0" title="YouTube: como medir o quadril" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+    </div>
+
+    <div class="video-secao">
+      <h2>Cintura</h2>
+      <div class="video-wrap">
+        <iframe src="https://www.youtube.com/embed/YCr1j-J4FVc?si=EDc3VeMUigRrMB98&amp;controls=0" title="YouTube: como medir a cintura" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){ var s=location.search; if(/^\?v=\d+$/.test(s)||/[?&]v=\d+($|&)/.test(s)){ var q=s.replace(/\?v=\d+&?|&v=\d+&?|&v=\d+$/g,"").replace(/^\?&?$/,"")||""; history.replaceState(null,"",location.pathname+(q?"?"+q:"")); } })();
+var firebaseConfig; try { firebaseConfig = JSON.parse(atob("eyJhcGlLZXkiOiJBSXphU3lBM3NkaWFCNGQ0dDdwRGl5YWVlMGZvY0RfZW1WQkpaRHciLCJhdXRoRG9tYWluIjoibW9kaS01MzY5ZC5maXJlYmFzZWFwcC5jb20iLCJwcm9qZWN0SWQiOiJtb2RpLTUzNjlkIiwic3RvcmFnZUJ1Y2tldCI6Im1vZGktNTM2OWQuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNjM5NjUyNzM5NTciLCJhcHBJZCI6IjE6NjM5NjUyNzM5NTc6d2ViOmMwMmIzMmZkOTY1Y2ZmNzA1YjBiOGMifQ==")); } catch(e) { firebaseConfig = { apiKey: "SUA_API_KEY" }; }
+if (!firebaseConfig || firebaseConfig.apiKey === "SUA_API_KEY") {
+  window.location.href = "index.html";
+} else {
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  auth.onAuthStateChanged(function(user) {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("userInfo").textContent = "Olá, " + (user.displayName || user.email);
+  });
+  document.getElementById("btnSair").onclick = function() {
+    auth.signOut();
+    window.location.href = "index.html";
+  };
+}
+</script>
+
+</body>
+</html>

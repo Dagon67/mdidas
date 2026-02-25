@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Formato do Corpo – Calculadora</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+body { font-family: Arial, sans-serif; background:#0e1220; color:#eaeaff; margin:0; }
+.container { max-width:900px; margin:auto; padding:20px; }
+.card { background:#151b34; border-radius:14px; padding:20px; }
+h1 { margin-top:0; }
+.grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; max-width:420px; }
+@media (max-width: 500px) { .grid { grid-template-columns:repeat(2, 1fr); } }
+label { font-size:13px; display:block; margin-bottom:4px; }
+input { width:100%; max-width:120px; padding:10px; border-radius:8px; border:1px solid #2d3a70; background:#0d132a; color:white; box-sizing:border-box; }
+.result-img { max-width:200px; width:100%; height:auto; border-radius:10px; margin-bottom:12px; display:block; }
+.result-content { display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; }
+.result-text { flex:1; min-width:200px; }
+button { margin-top:15px; padding:12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; background:#6b8cff; }
+.btn-medidas { display:inline-block; margin-top:10px; margin-left:12px; padding:12px 18px; font-size:14px; color:#6b8cff; background:transparent; border:1px solid #6b8cff; border-radius:10px; text-decoration:none; font-weight:bold; transition:color .2s, background .2s, border-color .2s; }
+.btn-medidas:hover { color:#eaeaff; background:rgba(107,140,255,.2); }
+.result { margin-top:20px; background:#0d132a; padding:15px; border-radius:10px; max-height:70vh; overflow-y:auto; }
+.msg-sucesso { margin-top:12px; padding:10px 14px; background:rgba(34,197,94,.2); border:1px solid #22c55e; border-radius:8px; color:#4ade80; font-size:14px; display:none; }
+.msg-sucesso.visible { display:block; }
+.result-intro { margin-bottom:14px; line-height:1.5; }
+.result h3 { font-size:14px; margin:14px 0 6px; color:#6b8cff; }
+.result ul { margin:4px 0 0 18px; padding-bottom:8px; }
+.result li { margin-bottom:4px; line-height:1.4; }
+ul { margin:6px 0 0 18px; }
+.hidden { display:none !important; }
+.user-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.user-bar span { font-size:14px; color:#9ca3af; }
+.user-bar .user-actions { display:flex; align-items:center; gap:12px; }
+.link-perfil { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; font-size:12px; color:#9ca3af; text-decoration:none; border-radius:8px; transition:color .2s, background .2s; }
+.link-perfil:hover { color:#eaeaff; background:rgba(55,65,81,.2); }
+.link-perfil svg { width:18px; height:18px; fill:currentColor; }
+.btn-sair { padding:6px 12px; font-size:12px; font-weight:500; color:#6b7280; background:transparent; border:1px solid rgba(107,114,128,.35); border-radius:8px; cursor:pointer; transition:color .2s, border-color .2s, background .2s; }
+.btn-sair:hover { color:#9ca3af; border-color:rgba(107,114,128,.5); background:rgba(55,65,81,.2); }
+.btn-voltar { margin-bottom:16px; padding:8px 16px; font-size:13px; background:transparent; color:#9ca3af; border:1px solid #2d3a70; border-radius:8px; cursor:pointer; text-decoration:none; display:inline-block; }
+.btn-voltar:hover { color:#eaeaff; border-color:#6b8cff; }
+iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fixed!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;visibility:hidden!important; }
+.formato-atual { margin-bottom:20px; padding:14px 18px; background:rgba(13,19,42,.6); border-radius:10px; border-left:4px solid #6b8cff; }
+.formato-atual .label { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#6b8cff; margin-bottom:4px; }
+.formato-atual .valor { font-size:16px; color:#eaeaff; font-weight:600; }
+.formato-atual .data { font-size:13px; color:#9ca3af; margin-top:4px; }
+.formato-atual .pendente { color:#9ca3af; font-style:italic; font-weight:normal; }
+</style>
+</head>
+<body>
+
+<div id="app" class="container hidden">
+  <div class="card">
+    <div class="user-bar">
+      <span id="userInfo">Olá</span>
+      <div class="user-actions">
+        <a href="perfil.html" class="link-perfil" aria-label="Perfil"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Perfil</a>
+        <button type="button" class="btn-sair" id="btnSair">Sair</button>
+      </div>
+    </div>
+    <a href="index.html" class="btn-voltar">← Voltar</a>
+    <h1>Formato do Corpo para Costura</h1>
+
+    <div id="formatoAtual" class="formato-atual">
+      <div class="label">Formato de corpo atual</div>
+      <div id="formatoAtualValor" class="valor pendente">Análise pendente</div>
+      <div id="formatoAtualData" class="data" style="display:none"></div>
+    </div>
+
+    <div class="grid">
+      <div><label>Busto (cm)</label><input id="busto"></div>
+      <div><label>Cintura (cm)</label><input id="cintura"></div>
+      <div><label>Quadril (cm)</label><input id="quadril"></div>
+      <div><label>Altura (cm)</label><input id="altura"></div>
+      <div><label>Peso (kg)</label><input id="peso"></div>
+    </div>
+
+    <button id="btnCalcular" onclick="calcular()">Calcular formato</button>
+    <a href="medidas.html" class="btn-medidas">Aprenda a tirar medidas</a>
+    <div id="msgSucesso" class="msg-sucesso" role="status">Tipo de corpo salvo com sucesso!</div>
+    <div class="result" id="resultado" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+(function(){ var s=location.search; if(/^\?v=\d+$/.test(s)||/[?&]v=\d+($|&)/.test(s)){ var q=s.replace(/\?v=\d+&?|&v=\d+&?|&v=\d+$/g,"").replace(/^\?&?$/,"")||""; history.replaceState(null,"",location.pathname+(q?"?"+q:"")); } })();
+function recarregarSemCache(){ location.replace(location.pathname+"?v="+Date.now()); }
+var firebaseConfig; try { firebaseConfig = JSON.parse(atob("eyJhcGlLZXkiOiJBSXphU3lBM3NkaWFCNGQ0dDdwRGl5YWVlMGZvY0RfZW1WQkpaRHciLCJhdXRoRG9tYWluIjoibW9kaS01MzY5ZC5maXJlYmFzZWFwcC5jb20iLCJwcm9qZWN0SWQiOiJtb2RpLTUzNjlkIiwic3RvcmFnZUJ1Y2tldCI6Im1vZGktNTM2OWQuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNjM5NjUyNzM5NTciLCJhcHBJZCI6IjE6NjM5NjUyNzM5NTc6d2ViOmMwMmIzMmZkOTY1Y2ZmNzA1YjBiOGMifQ==")); } catch(e) { firebaseConfig = { apiKey: "SUA_API_KEY" }; }
+if (!firebaseConfig || firebaseConfig.apiKey === "SUA_API_KEY") {
+  window.location.href = "index.html";
+} else {
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("userInfo").textContent = "Olá, " + (user.displayName || user.email);
+    try {
+      localStorage.setItem("modi_nome", user.displayName || "");
+      localStorage.setItem("modi_email", user.email || "");
+    } catch (e) {}
+    var tipoLocal = null;
+    try { tipoLocal = localStorage.getItem("modi_tipoCorpo"); } catch (e) {}
+    if (tipoLocal) {
+      var b = document.getElementById("btnCalcular");
+      if (b) b.textContent = "Recalcular formato";
+      atualizarFormatoAtual(tipoLocal, null);
+    } else {
+      atualizarFormatoAtual(null, null);
+    }
+    carregarAnaliseDoServidor(user.uid);
+  });
+
+  function atualizarFormatoAtual(tipo, dataFirestore) {
+    var elValor = document.getElementById("formatoAtualValor");
+    var elData = document.getElementById("formatoAtualData");
+    if (!elValor || !elData) return;
+    if (!tipo) {
+      elValor.textContent = "Análise pendente";
+      elValor.classList.add("pendente");
+      elData.style.display = "none";
+      return;
+    }
+    elValor.textContent = tipo;
+    elValor.classList.remove("pendente");
+    if (dataFirestore && dataFirestore.toDate) {
+      var d = dataFirestore.toDate();
+      elData.textContent = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+      elData.style.display = "block";
+    } else {
+      elData.style.display = "none";
+    }
+  }
+
+  window.carregarAnaliseDoServidor = async function(uid) {
+    var btn = document.getElementById("btnCalcular");
+    if (!btn) return;
+    try {
+      var snap = await db.collection("leads").doc(uid).get({ source: "server" });
+      var d = snap.exists ? snap.data() : null;
+      var tipo = d && d.tipoCorpo ? d.tipoCorpo : null;
+      if (!tipo) {
+        atualizarFormatoAtual(null, null);
+        return;
+      }
+      btn.textContent = "Recalcular formato";
+      atualizarFormatoAtual(tipo, d.atualizadoEm || null);
+      var m = d.medidas || {};
+      if (m.busto != null) document.getElementById("busto").value = m.busto;
+      if (m.cintura != null) document.getElementById("cintura").value = m.cintura;
+      if (m.quadril != null) document.getElementById("quadril").value = m.quadril;
+      if (m.altura != null) document.getElementById("altura").value = m.altura;
+      if (m.peso != null) document.getElementById("peso").value = m.peso;
+      var tipo = d.tipoCorpo;
+      try { localStorage.setItem("modi_tipoCorpo", tipo); } catch (e) {}
+      var imgMap = {
+        "Oval / Maçã": "oval.jpg",
+        "Ampulheta": "ampulheta.jpg",
+        "Pera (Triângulo)": "triangulo.jpg",
+        "Triângulo Invertido": "trianguloinvertido.jpg",
+        "Retângulo": "retangulo.jpg"
+      };
+      var imgFile = imgMap[tipo] || "retangulo.jpg";
+      var res = document.getElementById("resultado");
+      res.style.display = "block";
+      res.innerHTML =
+        '<div class="result-content">' +
+          '<img class="result-img" src="' + imgFile + '" alt="' + tipo + '">' +
+          '<div class="result-text">' +
+            '<b>Tipo de corpo:</b> ' + tipo + '<br><br>' +
+            (typeof montarConteudoResultado === "function" ? montarConteudoResultado(tipo) : "") +
+          '</div>' +
+        '</div>';
+    } catch (e) {}
+  };
+
+  document.getElementById("btnSair").onclick = function() {
+    auth.signOut();
+    window.location.href = "index.html";
+  };
+
+  window.salvarResultadoNoFirestore = async function(tipo, busto, cintura, quadril, altura, peso, onSuccess) {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      localStorage.setItem("modi_tipoCorpo", tipo);
+    } catch (e) {}
+    var payload = {
+      tipoCorpo: tipo,
+      medidas: { busto, cintura, quadril, altura, peso },
+      atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    try {
+      await db.collection("leads").doc(user.uid).set(payload, { merge: true });
+    } catch (e) {}
+    if (typeof onSuccess === "function") onSuccess();
+    setTimeout(recarregarSemCache, 800);
+  };
+}
+
+function n(id){ return parseFloat(document.getElementById(id).value.replace(',','.')); }
+
+var TEXTO_POR_TIPO = {
+  "Oval / Maçã": {
+    intro: "Corpo oval costuma ter o volume mais concentrado na região do abdômen, com ombros e quadris em proporções parecidas. A ideia das roupas não é \"esconder\", e sim alongar a silhueta e criar linhas mais verticais.",
+    partes: [
+      { titulo: "Parte de cima", itens: ["Decote em V ou U → alonga o tronco e chama atenção para o colo", "Camisas e blusas mais soltas, que não marcam a barriga", "Tecidos fluidos e leves (viscose, crepe, seda)", "Blazers e cardigans abertos → criam linhas verticais ótimas", "Comprimento médio (nem muito curto, nem muito longo)"] },
+      { titulo: "Parte de baixo", itens: ["Calças de corte reto ou levemente flare", "Cintura média ou levemente alta, sem apertar", "Jeans escuros ou cores neutras ajudam a alongar", "Saias retas ou evasê, que equilibram o corpo"] },
+      { titulo: "Vestidos", itens: ["Vestidos envelope (transpassados) são campeões", "Corte império (marca logo abaixo do busto)", "Vestidos retos ou levemente ajustados, sem serem justos", "Comprimento midi ou logo acima do joelho"] },
+      { titulo: "Truques que ajudam muito", itens: ["Looks monocromáticos ou com pouco contraste", "Listras verticais ou recortes verticais", "Evitar excesso de volume na região da barriga", "Preferir camadas abertas (coletes, terceiras peças)"] },
+      { titulo: "O que tende a não favorecer tanto", itens: ["Roupas muito justas no abdômen", "Cintura muito baixa", "Tecidos muito grossos ou armados na região central", "Estampas grandes bem no meio do corpo"] }
+    ]
+  },
+  "Ampulheta": {
+    intro: "O corpo ampulheta (ou \"violão\") tem ombros e quadris em proporção parecida e a cintura bem marcada. A grande ideia aqui é valorizar essa cintura e acompanhar as curvas, sem esconder.",
+    partes: [
+      { titulo: "Parte de cima", itens: ["Blusas ajustadas ou levemente acinturadas", "Decote em V, coração, quadrado ou canoa", "Camisas por dentro da calça/saia ou com corte na cintura", "Cropped (especialmente com cintura alta embaixo)", "Blazers acinturados ou com cinto"] },
+      { titulo: "Parte de baixo", itens: ["Calça de cintura alta ou média", "Modelagens que acompanham o quadril (reta, flare, wide leg estruturada)", "Jeans skinny, flare ou mom bem ajustado na cintura", "Saias lápis, midi ajustadas ou evasê"] },
+      { titulo: "Vestidos", itens: ["Vestido envelope (transpassado) — perfeito pra ampulheta", "Vestidos tubinho (desde que não sejam apertados demais)", "Vestidos acinturados ou com cinto", "Corte sereia ou godê estruturado"] },
+      { titulo: "Terceira peça & truques", itens: ["Cintos são grandes aliados", "Tecidos que acompanham o corpo, sem excesso de volume", "Looks que destacam a cintura (recortes, faixas, amarrações)", "Estrutura nos ombros ajuda a manter o equilíbrio"] },
+      { titulo: "O que tende a não favorecer tanto", itens: ["Roupas muito largas e sem forma", "Modelagens retas demais (escondem a cintura)", "Tecidos muito grossos que \"engessam\" o corpo", "Oversized sem nenhum ajuste na cintura"] }
+    ]
+  },
+  "Pera (Triângulo)": {
+    intro: "O corpo triângulo (também chamado de pera) tem quadris mais largos que os ombros. O objetivo das roupas é equilibrar a silhueta, dando mais destaque à parte de cima e suavizando a parte de baixo.",
+    partes: [
+      { titulo: "Parte de cima (onde vale chamar atenção)", itens: ["Blusas com detalhes nos ombros (babados, pregas, ombreiras leves)", "Decote canoa, ombro a ombro ou tomara-que-caia", "Estampas, cores claras ou vibrantes na parte de cima", "Blazers estruturados, mais curtos ou acinturados", "Camisas com volume (manga bufante, laços)"] },
+      { titulo: "Parte de baixo (quanto mais limpa, melhor)", itens: ["Calças retas ou levemente flare", "Cintura média ou alta, sem apertar", "Jeans escuros e sem muitos detalhes", "Saias em A (evasê) ou midi fluida", "Tecidos mais encorpados, que não marcam o quadril"] },
+      { titulo: "Vestidos", itens: ["Vestidos com destaque no busto", "Corte império", "Vestidos evasê", "Modelos com saia fluida e parte de cima estruturada"] },
+      { titulo: "Truques que funcionam muito", itens: ["Usar cores claras em cima e escuras embaixo", "Acessórios chamativos (colares, brincos)", "Terceira peça que termine acima do quadril", "Linhas verticais na parte de baixo ajudam a alongar"] },
+      { titulo: "O que tende a não favorecer tanto", itens: ["Calça skinny muito justa", "Saia lápis muito colada", "Bolsos, pregas ou brilhos no quadril", "Blusas muito compridas que param exatamente no quadril"] }
+    ]
+  },
+  "Triângulo Invertido": {
+    intro: "O corpo triângulo invertido tem ombros mais largos que os quadris e geralmente pernas mais finas. A ideia das roupas é equilibrar o visual, suavizando a parte de cima e dando mais volume à parte de baixo.",
+    partes: [
+      { titulo: "Parte de cima (menos volume)", itens: ["Blusas de alça fina ou média", "Decote em V ou U profundo (alongam e afinam o tronco)", "Modelagens mais retas e simples", "Cores neutras ou escuras", "Tecidos fluidos, sem estrutura nos ombros"] },
+      { titulo: "Evitar na parte de cima", itens: ["Ombreiras, mangas bufantes, babados", "Gola alta, canoa ou ombro a ombro", "Estampas grandes e muito contraste"] },
+      { titulo: "Parte de baixo (aqui vale dar volume!)", itens: ["Calças wide leg, pantalona ou flare", "Saias evasê, godê, plissadas", "Shorts com pregas ou bolsos", "Cores claras, estampas e texturas", "Cintura alta ajuda a valorizar as pernas"] },
+      { titulo: "Vestidos", itens: ["Vestidos com saia volumosa", "Modelos em A", "Vestidos transpassados (desde que não tenham volume em cima)", "Alça fina + saia fluida é combo certeiro"] },
+      { titulo: "Truques que ajudam muito", itens: ["Usar terceira peça aberta e sem estrutura", "Criar interesse visual do quadril pra baixo", "Cintos usados mais baixos (próximo ao quadril)", "Sapatos chamativos ajudam a equilibrar o look"] },
+      { titulo: "O que tende a não favorecer tanto", itens: ["Blazer estruturado com ombreira", "Cropped muito fechado ou gola alta", "Parte de cima muito curta e volumosa", "Skinny + blusa volumosa em cima"] }
+    ]
+  },
+  "Retângulo": {
+    intro: "O corpo retângulo tem ombros, cintura e quadris com medidas parecidas, com pouca definição de cintura. A proposta das roupas é criar curvas visuais e dar mais dimensão ao look.",
+    partes: [
+      { titulo: "Parte de cima", itens: ["Blusas com volume (babados, drapeados, pregas)", "Mangas bufantes ou estruturadas", "Decotes em V, coração ou quadrado", "Croppeds e blusas mais curtas (ajudam a marcar a cintura)", "Camadas (camisa + colete, blusa + blazer)"] },
+      { titulo: "Parte de baixo", itens: ["Calças de cintura alta", "Wide leg, pantalona ou flare", "Jeans mom ou slouchy", "Saias evasê, godê ou plissadas"] },
+      { titulo: "Vestidos", itens: ["Vestidos acinturados ou com cinto", "Modelos envelope (transpassados)", "Vestidos em A", "Vestidos com recortes laterais", "Peplum é ótimo pra criar quadril"] },
+      { titulo: "Truques de styling que fazem diferença", itens: ["Cintos (finos ou médios) pra marcar a cintura", "Blocos de cor (claro/escuro) criam ilusão de curvas", "Texturas diferentes no mesmo look", "Terceiras peças acinturadas"] },
+      { titulo: "O que tende a não favorecer tanto", itens: ["Roupas muito retas e largas ao mesmo tempo", "Looks totalmente oversized sem marcação", "Vestidos tubinho muito simples e retos", "Falta de contraste no look"] }
+    ]
+  }
+};
+
+function montarConteudoResultado(tipo) {
+  var d = TEXTO_POR_TIPO[tipo];
+  if (!d) return "<p><b>Tipo de corpo:</b> " + tipo + "</p>";
+  var html = '<p class="result-intro">' + d.intro + '</p>';
+  (d.partes || []).forEach(function(p) {
+    html += '<h3>' + p.titulo + '</h3><ul>' + p.itens.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul>';
+  });
+  return html;
+}
+
+function calcular(){
+  let busto=n('busto'), cintura=n('cintura'), quadril=n('quadril'),
+      altura=n('altura'), peso=n('peso');
+
+  if([busto,cintura,quadril,altura,peso].some(v=>isNaN(v)||v<=0)){
+    alert("Preencha todas as medidas corretamente.");
+    return;
+  }
+
+  let tipo="Retângulo";
+  let cinturaMarcada = cintura <= busto*0.78 && cintura <= quadril*0.78;
+  let bustoMaior = busto > quadril + 6;
+  let quadrilMaior = quadril > busto + 6;
+  let bustoQuadrilEquilibrados = Math.abs(busto - quadril) <= 5;
+
+  if(cintura >= busto*0.95) tipo="Oval / Maçã";
+  else if(bustoQuadrilEquilibrados && cinturaMarcada) tipo="Ampulheta";
+  else if(quadrilMaior) tipo="Pera (Triângulo)";
+  else if(bustoMaior) tipo="Triângulo Invertido";
+  else tipo="Retângulo";
+
+  if (typeof window.salvarResultadoNoFirestore === "function") {
+    window.salvarResultadoNoFirestore(tipo, busto, cintura, quadril, altura, peso, function() {
+      var msg = document.getElementById("msgSucesso");
+      if (msg) {
+        msg.classList.add("visible");
+        msg.innerHTML = "Tipo de corpo salvo com sucesso!<br><span style=\"font-size:0.92em; opacity:0.95\">Consulte o checklist rápido no <a href=\"perfil.html\" style=\"color:inherit;text-decoration:underline\">Perfil</a> para uma consulta rápida.</span>";
+        setTimeout(function() { msg.classList.remove("visible"); }, 6000);
+      }
+    });
+  }
+  const imgMap = {
+    "Oval / Maçã": "oval.jpg",
+    "Ampulheta": "ampulheta.jpg",
+    "Pera (Triângulo)": "triangulo.jpg",
+    "Triângulo Invertido": "trianguloinvertido.jpg",
+    "Retângulo": "retangulo.jpg"
+  };
+  const imgFile = imgMap[tipo] || "retangulo.jpg";
+  document.getElementById("resultado").style.display="block";
+  document.getElementById("resultado").innerHTML=
+    '<div class="result-content">' +
+      '<img class="result-img" src="' + imgFile + '" alt="' + tipo + '">' +
+      '<div class="result-text">' +
+        '<b>Tipo de corpo:</b> ' + tipo + '<br><br>' +
+        montarConteudoResultado(tipo) +
+      '</div>' +
+    '</div>';
+}
+</script>
+
+</body>
+</html>

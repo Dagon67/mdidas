@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "site": "modi-5369d",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "README.md",
+      "firestore.rules",
+      "backend/**",
+      "CORES_PASSO_A_PASSO.md"
+    ]
+  }
+}

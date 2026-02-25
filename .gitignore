@@ -1,0 +1,19 @@
+# Firebase
+.firebase/
+.firebaserc
+
+# Python (backend) - ignora venv e cache, mas a pasta backend/ sobe
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.env
+
+# Node (se um dia usar)
+node_modules/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log

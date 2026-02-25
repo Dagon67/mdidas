@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Perfil – Formato do Corpo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+body { font-family: Arial, sans-serif; background:#0e1220; color:#eaeaff; margin:0; }
+.container { max-width:600px; margin:auto; padding:20px; }
+.card { background:#151b34; border-radius:14px; padding:20px; }
+h1 { margin-top:0; font-size:22px; }
+.hidden { display:none !important; }
+.user-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:8px; }
+.user-bar span { font-size:14px; color:#9ca3af; }
+.btn-sair { padding:6px 12px; font-size:12px; font-weight:500; color:#6b7280; background:transparent; border:1px solid rgba(107,114,128,.35); border-radius:8px; cursor:pointer; transition:color .2s, border-color .2s, background .2s; }
+.btn-sair:hover { color:#9ca3af; border-color:rgba(107,114,128,.5); background:rgba(55,65,81,.2); }
+.btn-voltar { margin-bottom:16px; padding:8px 16px; font-size:13px; background:transparent; color:#9ca3af; border:1px solid #2d3a70; border-radius:8px; cursor:pointer; text-decoration:none; display:inline-block; }
+.btn-voltar:hover { color:#eaeaff; border-color:#6b8cff; }
+.perfil-campo { margin-bottom:16px; padding:12px 16px; background:rgba(13,19,42,.6); border-radius:10px; border-left:3px solid #6b8cff; }
+.perfil-campo label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#6b8cff; margin-bottom:4px; }
+.perfil-campo .valor { font-size:15px; color:#eaeaff; }
+.perfil-campo .pendente { color:#9ca3af; font-style:italic; }
+.checklist-secao { margin-top:24px; padding-top:20px; border-top:1px solid #2d3a70; }
+.checklist-title { font-size:18px; font-weight:bold; color:#6b8cff; margin:0 0 12px; }
+.checklist-list { list-style:none; padding:0; margin:0 0 16px; }
+.checklist-list li { padding:8px 0; padding-left:28px; position:relative; line-height:1.4; }
+.checklist-list li::before { position:absolute; left:0; }
+.checklist-list .ok::before { content:"✔ "; color:#4ade80; }
+.checklist-list .aviso::before { content:"⚠ "; color:#fbbf24; }
+.checklist-list .evitar::before { content:"❌ "; color:#f87171; }
+.lembrete { margin-top:16px; padding:14px; background:#0d132a; border-radius:10px; border-left:4px solid #6b8cff; font-style:italic; }
+.aviso-sem-tipo { margin-top:20px; padding:20px; text-align:center; color:#9ca3af; background:rgba(13,19,42,.6); border-radius:10px; }
+.aviso-sem-tipo p { margin:0 0 12px; }
+.aviso-sem-tipo a { color:#6b8cff; text-decoration:none; font-weight:bold; }
+.aviso-sem-tipo a:hover { text-decoration:underline; }
+iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fixed!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;visibility:hidden!important; }
+</style>
+</head>
+<body>
+
+<div id="app" class="container hidden">
+  <div class="card">
+    <div class="user-bar">
+      <span id="userInfo">Perfil</span>
+      <button type="button" class="btn-sair" id="btnSair">Sair</button>
+    </div>
+    <a href="index.html" class="btn-voltar">← Voltar</a>
+    <h1>Perfil</h1>
+
+    <div class="perfil-campo">
+      <label>Nome</label>
+      <div id="perfilNome" class="valor">—</div>
+    </div>
+    <div class="perfil-campo">
+      <label>E-mail</label>
+      <div id="perfilEmail" class="valor">—</div>
+    </div>
+    <div class="perfil-campo">
+      <label>Tipo de corpo</label>
+      <div id="perfilTipoCorpo" class="valor pendente">Avaliação pendente</div>
+    </div>
+
+    <div id="checklistSecao" class="checklist-secao hidden">
+      <div id="conteudoChecklist"></div>
+    </div>
+    <div id="avisoSemTipo" class="aviso-sem-tipo hidden">
+      <p>Descubra o seu tipo de corpo para ver seu checklist pessoal.</p>
+      <a href="calculadora.html">Ir para a calculadora →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){ var s=location.search; if(/^\?v=\d+$/.test(s)||/[?&]v=\d+($|&)/.test(s)){ var q=s.replace(/\?v=\d+&?|&v=\d+&?|&v=\d+$/g,"").replace(/^\?&?$/,"")||""; history.replaceState(null,"",location.pathname+(q?"?"+q:"")); } })();
+var firebaseConfig; try { firebaseConfig = JSON.parse(atob("eyJhcGlLZXkiOiJBSXphU3lBM3NkaWFCNGQ0dDdwRGl5YWVlMGZvY0RfZW1WQkpaRHciLCJhdXRoRG9tYWluIjoibW9kaS01MzY5ZC5maXJlYmFzZWFwcC5jb20iLCJwcm9qZWN0SWQiOiJtb2RpLTUzNjlkIiwic3RvcmFnZUJ1Y2tldCI6Im1vZGktNTM2OWQuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNjM5NjUyNzM5NTciLCJhcHBJZCI6IjE6NjM5NjUyNzM5NTc6d2ViOmMwMmIzMmZkOTY1Y2ZmNzA1YjBiOGMifQ==")); } catch(e) { firebaseConfig = { apiKey: "SUA_API_KEY" }; }
+if (!firebaseConfig || firebaseConfig.apiKey === "SUA_API_KEY") {
+  window.location.href = "index.html";
+} else {
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  var CHECKLIST_POR_TIPO = {
+    "Ampulheta": { titulo: "Corpo Ampulheta", itens: [{ tipo: "ok", texto: "Valorizar a cintura mantém o equilíbrio natural do corpo" }, { tipo: "ok", texto: "Modelagens ajustadas funcionam melhor que peças muito soltas" }, { tipo: "aviso", texto: "Tecidos muito rígidos podem \"engessar\" a silhueta" }, { tipo: "evitar", texto: "Cortes retos largos tendem a esconder seus pontos fortes" }], lembrete: "equilíbrio já existe — o erro é tentar disfarçar demais." },
+    "Pera (Triângulo)": { titulo: "Corpo Pera (Triângulo)", itens: [{ tipo: "ok", texto: "Dar mais destaque à parte superior equilibra a silhueta" }, { tipo: "ok", texto: "Decotes, detalhes e cores claras em cima ajudam bastante" }, { tipo: "aviso", texto: "Peças muito justas na parte de baixo chamam atenção excessiva" }, { tipo: "evitar", texto: "Bolsos grandes e volumes no quadril costumam desfavorecer" }], lembrete: "equilíbrio visual vem de \"subir\" o foco." },
+    "Oval / Maçã": { titulo: "Corpo Maçã (Oval)", itens: [{ tipo: "ok", texto: "Linhas verticais ajudam a alongar visualmente" }, { tipo: "ok", texto: "Tecidos fluidos criam uma leitura mais leve do corpo" }, { tipo: "aviso", texto: "Marcar demais a região central pode gerar desconforto visual" }, { tipo: "evitar", texto: "Cortes muito justos no abdômen tendem a evidenciar volume" }], lembrete: "alongar e suavizar costuma funcionar melhor que apertar." },
+    "Retângulo": { titulo: "Corpo Retângulo", itens: [{ tipo: "ok", texto: "Criar pontos de cintura ajuda a dar forma ao corpo" }, { tipo: "ok", texto: "Sobreposições e recortes estratégicos funcionam bem" }, { tipo: "aviso", texto: "Peças muito retas podem reforçar a linearidade" }, { tipo: "evitar", texto: "Looks sem variação de volume tendem a ficar \"sem leitura\"" }], lembrete: "o objetivo é criar curvas visuais, não esconder o corpo." },
+    "Triângulo Invertido": { titulo: "Corpo Triângulo Invertido", itens: [{ tipo: "ok", texto: "Dar mais presença à parte inferior equilibra o conjunto" }, { tipo: "ok", texto: "Tecidos estruturados embaixo ajudam a compensar os ombros" }, { tipo: "aviso", texto: "Ombreiras e detalhes na parte superior aumentam o desequilíbrio" }, { tipo: "evitar", texto: "Decotes muito fechados ou retos podem ampliar os ombros" }], lembrete: "distribuir o peso visual traz harmonia." }
+  };
+
+  function montarChecklist(tipoCorpo) {
+    var d = CHECKLIST_POR_TIPO[tipoCorpo];
+    if (!d) return "";
+    var html = '<div class="checklist-title">' + d.titulo + '</div><ul class="checklist-list">';
+    d.itens.forEach(function(item) { html += '<li class="' + item.tipo + '">' + item.texto + '</li>'; });
+    html += '</ul><div class="lembrete"><strong>Lembrete:</strong> ' + d.lembrete + '</div>';
+    return html;
+  }
+
+  function atualizarTipoCorpoNaTela(tipoCorpo) {
+    var elTipo = document.getElementById("perfilTipoCorpo");
+    var secaoChecklist = document.getElementById("checklistSecao");
+    var avisoSemTipo = document.getElementById("avisoSemTipo");
+    var conteudoChecklist = document.getElementById("conteudoChecklist");
+    if (tipoCorpo) {
+      elTipo.textContent = tipoCorpo;
+      elTipo.classList.remove("pendente");
+      try { localStorage.setItem("modi_tipoCorpo", tipoCorpo); } catch (e) {}
+      if (CHECKLIST_POR_TIPO[tipoCorpo]) {
+        conteudoChecklist.innerHTML = montarChecklist(tipoCorpo);
+        secaoChecklist.classList.remove("hidden");
+        avisoSemTipo.classList.add("hidden");
+      } else {
+        secaoChecklist.classList.add("hidden");
+        avisoSemTipo.classList.remove("hidden");
+      }
+    } else {
+      elTipo.textContent = "Avaliação pendente";
+      elTipo.classList.add("pendente");
+      secaoChecklist.classList.add("hidden");
+      avisoSemTipo.classList.remove("hidden");
+    }
+  }
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+    document.getElementById("app").classList.remove("hidden");
+    var nome = user.displayName || "";
+    var email = user.email || "";
+    try {
+      if (nome) localStorage.setItem("modi_nome", nome);
+      if (email) localStorage.setItem("modi_email", email);
+    } catch (e) {}
+    document.getElementById("perfilNome").textContent = nome || (localStorage.getItem("modi_nome") || "—");
+    document.getElementById("perfilEmail").textContent = email || (localStorage.getItem("modi_email") || "—");
+    var tipoLocal = null;
+    try { tipoLocal = localStorage.getItem("modi_tipoCorpo"); } catch (e) {}
+    if (tipoLocal) atualizarTipoCorpoNaTela(tipoLocal);
+    else atualizarTipoCorpoNaTela(null);
+    db.collection("leads").doc(user.uid).get({ source: "server" }).then(function(doc) {
+      var data = doc.exists ? doc.data() : null;
+      var tipoCorpo = data && data.tipoCorpo ? data.tipoCorpo : null;
+      if (tipoCorpo) {
+        atualizarTipoCorpoNaTela(tipoCorpo);
+        try { localStorage.setItem("modi_tipoCorpo", tipoCorpo); } catch (e) {}
+      } else {
+        atualizarTipoCorpoNaTela(null);
+      }
+    }).catch(function() { atualizarTipoCorpoNaTela(tipoLocal || null); });
+  });
+
+  document.getElementById("btnSair").onclick = function() {
+    auth.signOut();
+    window.location.href = "index.html";
+  };
+}
+</script>
+
+</body>
+</html>

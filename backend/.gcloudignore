@@ -1,0 +1,11 @@
+# Não enviar para o Cloud Build
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+*.md
+.env
+.venv

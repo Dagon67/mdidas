@@ -4,92 +4,286 @@
 <meta charset="utf-8">
 <title>Formato do Corpo – Costura</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 body { font-family: Arial, sans-serif; background:#0e1220; color:#eaeaff; margin:0; }
 .container { max-width:900px; margin:auto; padding:20px; }
 .card { background:#151b34; border-radius:14px; padding:20px; }
-h1 { margin-top:0; }
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
-label { font-size:13px; }
-input { width:100%; padding:10px; border-radius:8px; border:1px solid #2d3a70; background:#0d132a; color:white; }
-button { margin-top:15px; padding:12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; background:#6b8cff; }
-.result { margin-top:20px; background:#0d132a; padding:15px; border-radius:10px; }
-ul { margin:6px 0 0 18px; }
+.gate { text-align:center; padding:40px 20px; }
+.gate h2 { margin-bottom:8px; }
+.gate p { color:#9ca3af; margin-bottom:24px; }
+.btn-google { display:inline-flex; align-items:center; gap:10px; padding:12px 24px; background:#fff; color:#333; border-radius:10px; font-weight:bold; cursor:pointer; border:none; font-size:16px; }
+.btn-google:hover { background:#f3f4f6; }
+.btn-google img { width:24px; height:24px; }
+.hidden { display:none !important; }
+.user-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.user-bar span { font-size:14px; color:#9ca3af; }
+.user-bar .user-actions { display:flex; align-items:center; gap:12px; }
+.link-perfil { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; font-size:14px; color:#9ca3af; text-decoration:none; border-radius:8px; transition:color .2s, background .2s; }
+.link-perfil:hover { color:#eaeaff; background:rgba(55,65,81,.2); }
+.link-perfil svg { width:28px; height:28px; fill:currentColor; }
+.btn-sair { padding:6px 12px; font-size:12px; font-weight:500; color:#6b7280; background:transparent; border:1px solid rgba(107,114,128,.35); border-radius:8px; cursor:pointer; transition:color .2s, border-color .2s, background .2s; }
+.btn-sair:hover { color:#9ca3af; border-color:rgba(107,114,128,.5); background:rgba(55,65,81,.2); }
+.app-home { text-align:center; padding:40px 20px; }
+.app-home .icon-circle { width:100px; height:100px; border-radius:50%; background:#2d3a70; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; cursor:pointer; border:3px solid #6b8cff; transition:transform .2s, background .2s; }
+.app-home .icon-circle:hover { background:#3d4a80; transform:scale(1.05); }
+.app-home .icon-circle img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+.app-home .icon-circle svg { width:56px; height:56px; fill:#eaeaff; display:block; margin:0 auto; }
+.app-home .icon-label { font-size:18px; font-weight:bold; color:#eaeaff; }
+.app-home .icon-wrap { display:inline-block; cursor:pointer; text-decoration:none; color:inherit; }
+.app-home .icon-wrap.em-breve { cursor:default; pointer-events:none; opacity:.85; }
+.app-home .icon-wrap.em-breve .icon-circle { cursor:default; }
+.app-home .em-breve-label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#6b8cff; margin-top:4px; font-weight:600; }
+.app-home .icons-row { display:flex; flex-wrap:wrap; justify-content:center; gap:32px; margin-top:24px; }
+.dica-semana { text-align:left; margin-bottom:24px; padding:16px 20px; background:rgba(13,19,42,.6); border-radius:12px; border-left:4px solid #6b8cff; }
+.dica-semana h3 { margin:0 0 8px; font-size:14px; color:#6b8cff; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+.dica-semana p { margin:0; color:#eaeaff; line-height:1.5; font-size:15px; }
+.dica-semana .dica-placeholder { color:#9ca3af; font-style:italic; }
+/* Evita flash da tela de login: tudo fica oculto até o auth decidir */
+#gate, #app { opacity:0; transition:opacity .15s ease; }
+#gate.visible, #app.visible { opacity:1; }
+#authLoading { text-align:center; padding:60px 20px; color:#9ca3af; }
+/* Iframes internos do Firebase Auth: invisíveis para o usuário, funcionamento preservado */
+iframe[src*="auth/iframe"],
+iframe[id^="I0_"],
+iframe[name^="I0_"] { position:fixed!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;visibility:hidden!important; }
 </style>
 </head>
 <body>
 
-<div class="container">
-<div class="card">
-<h1>Formato do Corpo para Costura</h1>
+<div id="authLoading">Organizando suas recomendações…</div>
 
-<div class="grid">
-  <div><label>Busto (cm)</label><input id="busto"></div>
-  <div><label>Cintura (cm)</label><input id="cintura"></div>
-  <div><label>Quadril (cm)</label><input id="quadril"></div>
-  <div><label>Altura (cm)</label><input id="altura"></div>
-  <div><label>Ombro (largura em cm)</label><input id="ombro"></div>
-  <div><label>Altura do busto (cm)</label><input id="altBusto"></div>
+<div id="gate" class="container hidden">
+  <div class="card gate">
+    <h2>Formato do Corpo para Costura</h2>
+    <p>Entre com sua conta Google para acessar a ferramenta.</p>
+    <button type="button" id="btnGoogle" class="btn-google">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="24" height="24">
+      Entrar com Google
+    </button>
+  </div>
 </div>
 
-<button onclick="calcular()">Calcular formato</button>
+<div id="app" class="container hidden">
+  <div id="appHome" class="card app-home">
+    <div class="user-bar">
+      <span id="userInfo">Olá</span>
+      <div class="user-actions">
+        <a href="perfil.html" class="link-perfil" aria-label="Perfil"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Perfil</a>
+        <button type="button" class="btn-sair" id="btnSair">Sair</button>
+      </div>
+    </div>
+    <div class="dica-semana" id="dicaSemana">
+      <h3>Dica da semana</h3>
+      <p id="dicaSemanaTexto" class="dica-placeholder">Organizando suas recomendações…</p>
+    </div>
+    <div class="icons-row">
+      <a href="calculadora.html" class="icon-wrap" aria-label="Formato do meu corpo">
+        <div class="icon-circle" title="Formato do meu corpo">
+          <img src="iconecorpo.avif" alt="Formato do meu corpo" width="100" height="100">
+        </div>
+        <div class="icon-label">Formato do meu corpo</div>
+      </a>
+      <a href="cores.html" class="icon-wrap" aria-label="Minhas cores ideais">
+        <div class="icon-circle" title="Minhas cores ideais">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        </div>
+        <div class="icon-label">Minhas cores ideais</div>
+      </a>
+      <!-- ícone em breve (usar depois)
+      <span class="icon-wrap em-breve" aria-label="Guarda roupa inteligente (em breve)">
+        <div class="icon-circle" title="Guarda roupa inteligente">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+        </div>
+        <div class="icon-label">Guarda roupa inteligente</div>
+        <div class="em-breve-label">Em breve</div>
+      </span>
+      -->
+    </div>
 
-<div class="result" id="resultado" style="display:none"></div>
-</div>
 </div>
 
 <script>
-function n(id){ return parseFloat(document.getElementById(id).value.replace(',','.')); }
+(function(){ var s=location.search; if(/^\?v=\d+$/.test(s)||/[?&]v=\d+($|&)/.test(s)){ var q=s.replace(/\?v=\d+&?|&v=\d+&?|&v=\d+$/g,"").replace(/^\?&?$/,"")||""; history.replaceState(null,"",location.pathname+(q?"?"+q:"")); } })();
+function recarregarSemCache(){ location.replace(location.pathname+"?v="+Date.now()); }
+var firebaseConfig; try { firebaseConfig = JSON.parse(atob("eyJhcGlLZXkiOiJBSXphU3lBM3NkaWFCNGQ0dDdwRGl5YWVlMGZvY0RfZW1WQkpaRHciLCJhdXRoRG9tYWluIjoibW9kaS01MzY5ZC5maXJlYmFzZWFwcC5jb20iLCJwcm9qZWN0SWQiOiJtb2RpLTUzNjlkIiwic3RvcmFnZUJ1Y2tldCI6Im1vZGktNTM2OWQuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNjM5NjUyNzM5NTciLCJhcHBJZCI6IjE6NjM5NjUyNzM5NTc6d2ViOmMwMmIzMmZkOTY1Y2ZmNzA1YjBiOGMifQ==")); } catch(e) { firebaseConfig = { apiKey: "SUA_API_KEY" }; }
+if (firebaseConfig && firebaseConfig.apiKey !== "SUA_API_KEY") {
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-function calcular(){
-  let busto=n('busto'), cintura=n('cintura'), quadril=n('quadril'),
-      altura=n('altura'), ombro=n('ombro'), altBusto=n('altBusto');
+  var DICAS_POR_TIPO = {
+    "Ampulheta": [
+      "Valorize a cintura com cortes levemente ajustados",
+      "Prefira tecidos que acompanham o corpo sem apertar",
+      "Se usar peças soltas, equilibre com definição em outro ponto",
+      "Evite esconder a silhueta natural com roupas muito largas",
+      "Modelagens clássicas costumam funcionar melhor que exageros",
+      "Cintos finos ajudam mais que cintos muito largos",
+      "Tecidos rígidos demais podem \"quebrar\" a harmonia",
+      "Menos camadas costuma funcionar melhor para você"
+    ],
+    "Pera (Triângulo)": [
+      "Traga o foco visual para a parte superior",
+      "Detalhes, cores claras ou texturas em cima ajudam no equilíbrio",
+      "Prefira partes de baixo com cortes simples e limpos",
+      "Evite bolsos grandes ou volumes no quadril",
+      "Decotes e acessórios superiores ajudam a redistribuir atenção",
+      "Tecidos muito colados embaixo costumam desfavorecer",
+      "Comprimentos médios funcionam melhor que extremos",
+      "Quanto mais simples a parte de baixo, melhor o conjunto"
+    ],
+    "Oval / Maçã": [
+      "Aposte em linhas verticais para alongar visualmente",
+      "Tecidos fluidos criam uma leitura mais leve do corpo",
+      "Prefira peças que não marquem a região central",
+      "Camadas abertas ajudam a quebrar o volume frontal",
+      "Evite cortes muito justos no abdômen",
+      "Comprimentos médios costumam equilibrar melhor",
+      "Decotes em V ajudam a alongar a silhueta",
+      "Menos contraste no centro, mais continuidade visual"
+    ],
+    "Retângulo": [
+      "Crie pontos de cintura com cortes ou sobreposições",
+      "Contraste entre parte de cima e de baixo ajuda a dar forma",
+      "Peças com recortes criam mais leitura visual",
+      "Tecidos muito retos reforçam a linearidade",
+      "Camadas leves ajudam a criar volume estratégico",
+      "Evite looks totalmente retos do início ao fim",
+      "Cintos funcionam melhor quando usados com moderação",
+      "Pequenos volumes são aliados, não inimigos"
+    ],
+    "Triângulo Invertido": [
+      "Traga mais atenção para a parte inferior",
+      "Tecidos com mais peso embaixo ajudam no equilíbrio",
+      "Prefira cortes simples e limpos na parte superior",
+      "Evite volumes, ombreiras ou detalhes excessivos nos ombros",
+      "Decotes que \"abrem\" o colo equilibram melhor",
+      "Partes de baixo estruturadas ajudam a compensar",
+      "Cores claras embaixo funcionam melhor que em cima",
+      "Quanto mais discreta a parte superior, mais harmônico o conjunto"
+    ]
+  };
 
-  if([busto,cintura,quadril,altura,ombro,altBusto].some(v=>isNaN(v)||v<=0)){
-    alert("Preencha todas as medidas corretamente.");
-    return;
+  function getSemanaAtual() {
+    var d = new Date();
+    var inicioAno = new Date(d.getFullYear(), 0, 1);
+    var diff = d - inicioAno;
+    return Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
   }
 
-  let tipo="Retângulo";
-  let dicas=[];
-
-  let cinturaMarcada = cintura <= busto*0.75 && cintura <= quadril*0.75;
-  let bustoMaior = busto > quadril + 6;
-  let quadrilMaior = quadril > busto + 6;
-  let ombroLargo = ombro >= quadril*0.27;
-  let bustoAlto = altBusto <= altura*0.26;
-
-  if(cintura >= busto*0.95){
-    tipo="Oval / Maçã";
-    dicas.push("Aumentar folga no centro da frente");
-    dicas.push("Ajuste de abdômen (full tummy)");
-  }
-  else if(Math.abs(busto-quadril)<=5 && cinturaMarcada){
-    tipo="Ampulheta";
-    dicas.push("Modelagem acinturada");
-    dicas.push("Atenção à altura do busto nas pences");
-  }
-  else if(quadrilMaior){
-    tipo="Pera (Triângulo)";
-    dicas.push("Gradação maior no quadril");
-    dicas.push("Parte superior mais ajustada");
-  }
-  else if(bustoMaior && ombroLargo && bustoAlto){
-    tipo="Triângulo Invertido";
-    dicas.push("Ajuste de cava e ombro");
-    dicas.push("Reduzir volume superior");
-  }
-  else{
-    tipo="Retângulo";
-    dicas.push("Criar cintura com pences ou recortes");
-    dicas.push("Checar alinhamento de ombro");
+  function mostrarDicaPorTipo(el, tipoCorpo) {
+    var dicas = tipoCorpo && DICAS_POR_TIPO[tipoCorpo] ? DICAS_POR_TIPO[tipoCorpo] : null;
+    if (!dicas || dicas.length === 0) {
+      el.textContent = "Descubra o seu tipo de corpo para dicas personalizadas.";
+      el.classList.add("dica-placeholder");
+    } else {
+      var semana = getSemanaAtual();
+      el.textContent = dicas[semana % dicas.length];
+      el.classList.remove("dica-placeholder");
+    }
   }
 
-  document.getElementById("resultado").style.display="block";
-  document.getElementById("resultado").innerHTML=
-    `<b>Tipo de corpo:</b> ${tipo}
-     <br><br><b>Dicas de costura:</b>
-     <ul>${dicas.map(d=>"<li>"+d+"</li>").join("")}</ul>`;
+  function atualizarDicaSemana(user) {
+    var el = document.getElementById("dicaSemanaTexto");
+    if (!el) return;
+    var tipoCorpo = null;
+    try { tipoCorpo = localStorage.getItem("modi_tipoCorpo"); } catch (e) {}
+    if (tipoCorpo && DICAS_POR_TIPO[tipoCorpo]) {
+      mostrarDicaPorTipo(el, tipoCorpo);
+    } else {
+      el.textContent = "Descubra o seu tipo de corpo para dicas personalizadas.";
+      el.classList.add("dica-placeholder");
+      db.collection("leads").doc(user.uid).get({ source: "server" }).then(function(doc) {
+        var data = doc.exists ? doc.data() : null;
+        var tipo = data && data.tipoCorpo ? data.tipoCorpo : null;
+        if (tipo && DICAS_POR_TIPO[tipo]) {
+          try { localStorage.setItem("modi_tipoCorpo", tipo); } catch (e) {}
+          mostrarDicaPorTipo(el, tipo);
+        }
+      }).catch(function() {});
+    }
+  }
+
+  auth.onAuthStateChanged(function(user) {
+    var loading = document.getElementById("authLoading");
+    var gate = document.getElementById("gate");
+    var app = document.getElementById("app");
+    if (loading) loading.style.display = "none";
+    if (user) {
+      if (gate) { gate.classList.add("hidden"); gate.classList.remove("visible"); }
+      if (app) { app.classList.remove("hidden"); app.classList.add("visible"); }
+      document.getElementById("userInfo").textContent = "Olá, " + (user.displayName || user.email);
+      try {
+        localStorage.setItem("modi_nome", user.displayName || "");
+        localStorage.setItem("modi_email", user.email || "");
+      } catch (e) {}
+      registrarLead(user);
+      atualizarDicaSemana(user);
+      document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === "visible" && user && document.getElementById("dicaSemanaTexto")) {
+          var tipo = null;
+          try { tipo = localStorage.getItem("modi_tipoCorpo"); } catch (e) {}
+          if (tipo && DICAS_POR_TIPO[tipo]) {
+            mostrarDicaPorTipo(document.getElementById("dicaSemanaTexto"), tipo);
+          }
+        }
+      });
+    } else {
+      if (gate) { gate.classList.remove("hidden"); gate.classList.add("visible"); }
+      if (app) { app.classList.add("hidden"); app.classList.remove("visible"); }
+    }
+  });
+
+  async function registrarLead(user) {
+    try {
+      const docId = user.uid;
+      await db.collection("leads").doc(docId).set({
+        email: user.email,
+        nome: user.displayName || "",
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      capturarLocalizacao(docId);
+    } catch (e) {}
+  }
+
+  function capturarLocalizacao(userId) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async function(pos) {
+        try {
+          const lat = Math.round(pos.coords.latitude * 1e6) / 1e6;
+          const lng = Math.round(pos.coords.longitude * 1e6) / 1e6;
+          await db.collection("leads").doc(userId).set({
+            localizacao: { lat, lng },
+            localizacaoEm: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (e) {}
+      },
+      function() { /* usuário negou ou erro – não bloqueia o app */ },
+      { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }
+    );
+  }
+
+  document.getElementById("btnGoogle").onclick = function() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(function(err) { alert("Erro ao entrar: " + (err.message || err)); });
+  };
+
+  document.getElementById("btnSair").onclick = function() { auth.signOut(); };
+} else {
+  var loading = document.getElementById("authLoading");
+  if (loading) loading.style.display = "none";
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("app").classList.add("visible");
+  document.getElementById("userInfo").parentElement.classList.add("hidden");
+  var elDica = document.getElementById("dicaSemanaTexto");
+  if (elDica) { elDica.textContent = "Descubra o seu tipo de corpo para dicas personalizadas."; elDica.classList.add("dica-placeholder"); }
 }
 </script>
 
