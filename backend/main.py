@@ -1,13 +1,42 @@
 """
 API do módulo de colorimetria pessoal.
-Recebe fotos (rosto, braço interno, cabelo, braço externo opcional), processa e retorna perfil + paletas.
+Recebe fotos (rosto com folha branca, braço interno, cabelo, braço externo opcional), processa e retorna perfil + paletas.
+Usa calibração LAB (calib.json) quando existir para alinhar com referências profissionais.
 """
 import io
+import json
+import os
 import traceback
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+
+# Carrega calibração LAB se existir (gerada por backend/scripts/calibrate.py)
+_CALIB = None
+def _load_calib():
+    global _CALIB
+    if _CALIB is not None:
+        return _CALIB
+    path = os.path.join(os.path.dirname(__file__), "processing", "calib.json")
+    if os.path.isfile(path):
+        with open(path, "r", encoding="utf-8") as f:
+            _CALIB = json.load(f)
+    else:
+        _CALIB = {}
+    return _CALIB
+
+def _apply_calib(lab_list):
+    """Aplica offset de calibração ao mean_lab [L, a, b]."""
+    if not lab_list or len(lab_list) < 3:
+        return lab_list
+    calib = _load_calib()
+    if not calib:
+        return lab_list
+    L = float(lab_list[0]) + calib.get("offset_L", 0)
+    a = float(lab_list[1]) + calib.get("offset_a", 0)
+    b = float(lab_list[2]) + calib.get("offset_b", 0)
+    return [L, a, b]
 
 from processing.preprocess import preprocess_pipeline
 from processing.segment import segment_face_mediapipe, segment_skin_region, segment_hair_region, get_region_pixels
@@ -68,6 +97,11 @@ async def analisar_cores(
             feat_skin_braco = {"mean_lab": [52, 5, 14], "chroma_mean": 14}
         if not feat_hair:
             feat_hair = {"mean_lab": [35, 2, 5], "chroma_mean": 5}
+
+        # Aplicar calibração LAB (referência profissional) aos mean_lab
+        for feat in (feat_skin_rosto, feat_skin_braco, feat_hair):
+            if feat and feat.get("mean_lab"):
+                feat["mean_lab"] = _apply_calib(feat["mean_lab"])
 
         skin_mean = feat_skin_rosto.get("mean_lab") or feat_skin_braco.get("mean_lab")
         braco_mean = feat_skin_braco.get("mean_lab")

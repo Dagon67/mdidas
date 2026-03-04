@@ -72,7 +72,7 @@ iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fi
 
     <div class="instrucoes">
       <h3>Como tirar as fotos</h3>
-      <p style="margin-bottom:10px;">Para o app estabilizar o branco, <strong>coloque uma folha branca ao lado do rosto</strong> na foto do rosto. Veja exemplos:</p>
+      <p style="margin-bottom:10px;">O app usa a <strong>folha branca na foto do rosto</strong> para calibrar as cores. É obrigatório que a foto do rosto mostre uma folha branca (ou cartão branco) no enquadramento. Veja exemplos:</p>
       <p><a href="referencia_cor.html" style="color:#6b8cff; font-weight:600;">Ver guia com imagens de referência →</a></p>
       <ul>
         <li><strong>Rosto:</strong> sem maquiagem, luz natural difusa; folha branca ou cartão cinza ao lado para calibrar.</li>
@@ -91,7 +91,8 @@ iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fi
 
     <form id="formCores">
       <div class="upload-group">
-        <label for="fotoRosto">1. Rosto (obrigatório)</label>
+        <label for="fotoRosto">1. Rosto com folha branca (obrigatório)</label>
+        <p class="opcional" style="margin:4px 0 6px;">A foto do rosto deve incluir uma folha branca ou cartão branco ao lado para o app calibrar o branco e analisar as cores com precisão.</p>
         <input type="file" id="fotoRosto" name="rosto" accept="image/*" required>
       </div>
       <div class="upload-group">

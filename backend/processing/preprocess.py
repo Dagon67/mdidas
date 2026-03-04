@@ -47,6 +47,36 @@ def white_balance_simple(img_bgr):
     return cv2.cvtColor(result, cv2.COLOR_LAB2BGR)
 
 
+def _detect_white_mask(lab_uint8, l_min=240, chroma_max=15):
+    """Máscara de pixels brancos: L alto (OpenCV 0-255) e croma baixo em a,b."""
+    l_ch = lab_uint8[:, :, 0]
+    a_ch = lab_uint8[:, :, 1].astype(np.float32) - 128
+    b_ch = lab_uint8[:, :, 2].astype(np.float32) - 128
+    chroma = np.sqrt(a_ch**2 + b_ch**2)
+    mask = (l_ch >= l_min) & (chroma <= chroma_max)
+    return mask
+
+
+def white_balance_by_reference(img_bgr, white_l_min=240, white_chroma_max=18):
+    """
+    Balanço de branco usando região de papel branco na imagem.
+    Detecta pixels com L alto e croma baixo (neutros), calcula o desvio médio a,b
+    e corrige a imagem para que essa região fique neutra (a,b=128 em OpenCV).
+    """
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    white_mask = _detect_white_mask(lab, l_min=white_l_min, chroma_max=white_chroma_max)
+    n_white = np.sum(white_mask)
+    if n_white < 100:
+        return white_balance_simple(img_bgr)
+    a_vals = lab[:, :, 1][white_mask]
+    b_vals = lab[:, :, 2][white_mask]
+    ref_a = float(np.median(a_vals))
+    ref_b = float(np.median(b_vals))
+    lab[:, :, 1] = np.clip(lab[:, :, 1] - (ref_a - 128), 0, 255).astype(np.uint8)
+    lab[:, :, 2] = np.clip(lab[:, :, 2] - (ref_b - 128), 0, 255).astype(np.uint8)
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
 def to_lab(img_bgr):
     """Converte BGR para LAB (L em [0,100], a,b ~[-128,127])."""
     lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
@@ -62,16 +92,20 @@ def to_hsv(img_bgr):
     return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
 
 
-def preprocess_pipeline(img_bytes, apply_white_balance=True, apply_exposure=True):
+def preprocess_pipeline(img_bytes, apply_white_balance=True, apply_exposure=True, use_white_reference=True):
     """
     Pipeline de pré-processamento.
+    Se use_white_reference=True, tenta detectar papel branco e calibrar o branco por referência.
     Retorna dict com 'bgr', 'lab', 'hsv', 'bgr_norm' (normalizado).
     """
     img = load_image(img_bytes)
     if img is None:
         return None
     if apply_white_balance:
-        img = white_balance_simple(img)
+        if use_white_reference:
+            img = white_balance_by_reference(img)
+        else:
+            img = white_balance_simple(img)
     if apply_exposure:
         img = normalize_exposure(img)
     lab = to_lab(img)

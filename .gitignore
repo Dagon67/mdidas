@@ -9,6 +9,7 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/*.pyc
 backend/.env
+backend/scripts/calib_report.json
 
 # Node (se um dia usar)
 node_modules/

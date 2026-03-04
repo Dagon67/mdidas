@@ -41,6 +41,30 @@ def lab_to_hex(L, a, b):
     return "#{:02x}{:02x}{:02x}".format(r, g, b_)
 
 
+def hex_to_lab(hex_str):
+    """Converte HEX (#rrggbb ou #rrggbbff) para LAB (L 0-100, a,b ~[-128,127])."""
+    hex_str = hex_str.strip().lstrip("#")
+    if len(hex_str) >= 8:
+        hex_str = hex_str[:6]
+    r = int(hex_str[0:2], 16) / 255.0
+    g = int(hex_str[2:4], 16) / 255.0
+    b_ = int(hex_str[4:6], 16) / 255.0
+    r = r / 12.92 if r <= 0.04045 else ((r + 0.055) / 1.055) ** 2.4
+    g = g / 12.92 if g <= 0.04045 else ((g + 0.055) / 1.055) ** 2.4
+    b_ = b_ / 12.92 if b_ <= 0.04045 else ((b_ + 0.055) / 1.055) ** 2.4
+    x = r * 0.4124 + g * 0.3576 + b_ * 0.1805
+    y = r * 0.2126 + g * 0.7152 + b_ * 0.0722
+    z = r * 0.0193 + g * 0.1192 + b_ * 0.9505
+    x, y, z = x / 0.95047, y / 1.0, z / 1.08883
+    y = y ** (1/3) if y > 0.008856 else (7.787 * y) + (16 / 116)
+    x = x ** (1/3) if x > 0.008856 else (7.787 * x) + (16 / 116)
+    z = z ** (1/3) if z > 0.008856 else (7.787 * z) + (16 / 116)
+    L = (116 * y) - 16
+    a = 500 * (x - y)
+    b = 200 * (y - z)
+    return (float(L), float(a), float(b))
+
+
 def generate_palettes(subtom, valor, croma, contraste, season):
     """
     Gera paleta principal, neutra e destaque com base no perfil.
