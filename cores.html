@@ -91,20 +91,24 @@ iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fi
 
     <form id="formCores">
       <div class="upload-group">
-        <label for="fotoRosto">1. Rosto com folha branca (obrigatório)</label>
-        <p class="opcional" style="margin:4px 0 6px;">A foto do rosto deve incluir uma folha branca ou cartão branco ao lado para o app calibrar o branco e analisar as cores com precisão.</p>
+        <label for="fotoRosto">1. Rosto (obrigatório)</label>
         <input type="file" id="fotoRosto" name="rosto" accept="image/*" required>
       </div>
       <div class="upload-group">
-        <label for="fotoBraco">2. Parte interna do braço (obrigatório)</label>
+        <label for="fotoRostoPapel">2. Rosto com folha branca <span class="opcional">(opcional, para calibrar o branco)</span></label>
+        <p class="opcional" style="margin:4px 0 6px;">Envie uma foto do rosto com uma folha branca ou cartão branco no enquadramento. O app usa isso para calibrar as cores com precisão.</p>
+        <input type="file" id="fotoRostoPapel" name="rosto_com_papel" accept="image/*">
+      </div>
+      <div class="upload-group">
+        <label for="fotoBraco">3. Parte interna do braço (obrigatório)</label>
         <input type="file" id="fotoBraco" name="braco_interno" accept="image/*" required>
       </div>
       <div class="upload-group">
-        <label for="fotoCabelo">3. Cabelo (obrigatório)</label>
+        <label for="fotoCabelo">4. Cabelo (obrigatório)</label>
         <input type="file" id="fotoCabelo" name="cabelo" accept="image/*" required>
       </div>
       <div class="upload-group">
-        <label for="fotoBracoExt">4. Parte externa do braço <span class="opcional">(opcional)</span></label>
+        <label for="fotoBracoExt">5. Parte externa do braço <span class="opcional">(opcional)</span></label>
         <input type="file" id="fotoBracoExt" name="braco_externo" accept="image/*">
       </div>
       <button type="submit" class="btn-analisar" id="btnAnalisar">Analisar minhas cores</button>
@@ -174,6 +178,8 @@ if (!firebaseConfig || firebaseConfig.apiKey === "SUA_API_KEY") {
     resultado.classList.add("hidden");
     var formData = new FormData();
     formData.append("rosto", document.getElementById("fotoRosto").files[0]);
+    if (document.getElementById("fotoRostoPapel").files.length > 0)
+      formData.append("rosto_com_papel", document.getElementById("fotoRostoPapel").files[0]);
     formData.append("braco_interno", document.getElementById("fotoBraco").files[0]);
     formData.append("cabelo", document.getElementById("fotoCabelo").files[0]);
     if (document.getElementById("fotoBracoExt").files.length > 0)

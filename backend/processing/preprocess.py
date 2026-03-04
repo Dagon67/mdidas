@@ -57,6 +57,37 @@ def _detect_white_mask(lab_uint8, l_min=240, chroma_max=15):
     return mask
 
 
+def get_white_balance_correction(img_bgr, white_l_min=240, white_chroma_max=18):
+    """
+    Obtém a correção de branco (delta_a, delta_b) a partir de uma imagem que contém
+    papel branco. Retorna (delta_a, delta_b) em escala OpenCV LAB (0-255).
+    Use apply_white_balance_correction(img, da, db) para aplicar a outra imagem.
+    Se não houver região branca suficiente, retorna (0, 0).
+    """
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    white_mask = _detect_white_mask(lab, l_min=white_l_min, chroma_max=white_chroma_max)
+    n_white = np.sum(white_mask)
+    if n_white < 100:
+        return (0.0, 0.0)
+    a_vals = lab[:, :, 1][white_mask]
+    b_vals = lab[:, :, 2][white_mask]
+    ref_a = float(np.median(a_vals))
+    ref_b = float(np.median(b_vals))
+    delta_a = ref_a - 128
+    delta_b = ref_b - 128
+    return (delta_a, delta_b)
+
+
+def apply_white_balance_correction(img_bgr, delta_a, delta_b):
+    """Aplica correção de branco (delta_a, delta_b em escala OpenCV) à imagem."""
+    if abs(delta_a) < 0.5 and abs(delta_b) < 0.5:
+        return img_bgr
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    lab[:, :, 1] = np.clip(lab[:, :, 1].astype(np.float32) - delta_a, 0, 255).astype(np.uint8)
+    lab[:, :, 2] = np.clip(lab[:, :, 2].astype(np.float32) - delta_b, 0, 255).astype(np.uint8)
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
 def white_balance_by_reference(img_bgr, white_l_min=240, white_chroma_max=18):
     """
     Balanço de branco usando região de papel branco na imagem.
@@ -92,17 +123,20 @@ def to_hsv(img_bgr):
     return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
 
 
-def preprocess_pipeline(img_bytes, apply_white_balance=True, apply_exposure=True, use_white_reference=True):
+def preprocess_pipeline(img_bytes, apply_white_balance=True, apply_exposure=True, use_white_reference=True, wb_correction=None):
     """
     Pipeline de pré-processamento.
-    Se use_white_reference=True, tenta detectar papel branco e calibrar o branco por referência.
+    wb_correction: opcional (delta_a, delta_b) da imagem "rosto com papel"; quando dado, aplica
+    essa correção em vez de detectar branco na própria imagem.
     Retorna dict com 'bgr', 'lab', 'hsv', 'bgr_norm' (normalizado).
     """
     img = load_image(img_bytes)
     if img is None:
         return None
     if apply_white_balance:
-        if use_white_reference:
+        if wb_correction is not None and len(wb_correction) >= 2:
+            img = apply_white_balance_correction(img, wb_correction[0], wb_correction[1])
+        elif use_white_reference:
             img = white_balance_by_reference(img)
         else:
             img = white_balance_simple(img)

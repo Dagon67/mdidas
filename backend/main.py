@@ -26,19 +26,26 @@ def _load_calib():
         _CALIB = {}
     return _CALIB
 
-def _apply_calib(lab_list):
-    """Aplica offset de calibração ao mean_lab [L, a, b]."""
+def _apply_calib(lab_list, region_key=None):
+    """Aplica offset de calibração ao mean_lab [L, a, b]. region_key: 'skin_face', 'skin_arm', 'hair'."""
     if not lab_list or len(lab_list) < 3:
         return lab_list
     calib = _load_calib()
     if not calib:
         return lab_list
-    L = float(lab_list[0]) + calib.get("offset_L", 0)
-    a = float(lab_list[1]) + calib.get("offset_a", 0)
-    b = float(lab_list[2]) + calib.get("offset_b", 0)
+    by_region = calib.get("by_region") or {}
+    if region_key and region_key in by_region:
+        off = by_region[region_key]
+        L = float(lab_list[0]) + off[0]
+        a = float(lab_list[1]) + off[1]
+        b = float(lab_list[2]) + off[2]
+    else:
+        L = float(lab_list[0]) + calib.get("offset_L", 0)
+        a = float(lab_list[1]) + calib.get("offset_a", 0)
+        b = float(lab_list[2]) + calib.get("offset_b", 0)
     return [L, a, b]
 
-from processing.preprocess import preprocess_pipeline
+from processing.preprocess import preprocess_pipeline, get_white_balance_correction, load_image
 from processing.segment import segment_face_mediapipe, segment_skin_region, segment_hair_region, get_region_pixels
 from processing.extract import extract_region_features
 from processing.classify import infer_subtom, infer_valor, infer_croma, infer_contrast, classify_season
@@ -56,24 +63,36 @@ def root():
 @app.post("/analisar")
 async def analisar_cores(
     rosto: UploadFile = File(...),
+    rosto_com_papel: Optional[UploadFile] = File(None),
     braco_interno: UploadFile = File(...),
     cabelo: UploadFile = File(...),
     braco_externo: Optional[UploadFile] = File(None),
 ):
     """
     Analisa as fotos e retorna perfil cromático, paletas e recomendações.
-    Fotos obrigatórias: rosto, braco_interno, cabelo. braco_externo opcional.
+    Fotos obrigatórias: rosto, braco_interno, cabelo. rosto_com_papel (para calibrar branco) e braco_externo opcionais.
+    Se rosto_com_papel for enviado, a correção de branco extraída dela é aplicada a todas as fotos.
     """
     try:
-        # 1) Carregar e pré-processar (UploadFile.read() é async e retorna bytes)
+        # 1) Carregar bytes
         data_rosto = await rosto.read()
         data_braco = await braco_interno.read()
         data_cabelo = await cabelo.read()
         data_braco_ext = await braco_externo.read() if braco_externo else None
 
-        pre_rosto = preprocess_pipeline(io.BytesIO(data_rosto))
-        pre_braco = preprocess_pipeline(io.BytesIO(data_braco))
-        pre_cabelo = preprocess_pipeline(io.BytesIO(data_cabelo))
+        # Correção de branco a partir da foto "rosto com papel" (quando fornecida)
+        wb_correction = None
+        if rosto_com_papel:
+            data_papel = await rosto_com_papel.read()
+            img_papel = load_image(io.BytesIO(data_papel))
+            if img_papel is not None:
+                da, db = get_white_balance_correction(img_papel)
+                if abs(da) > 0.5 or abs(db) > 0.5:
+                    wb_correction = (da, db)
+
+        pre_rosto = preprocess_pipeline(io.BytesIO(data_rosto), wb_correction=wb_correction)
+        pre_braco = preprocess_pipeline(io.BytesIO(data_braco), wb_correction=wb_correction)
+        pre_cabelo = preprocess_pipeline(io.BytesIO(data_cabelo), wb_correction=wb_correction)
         if not pre_rosto or not pre_braco or not pre_cabelo:
             raise HTTPException(status_code=400, detail="Não foi possível processar uma ou mais imagens.")
 
@@ -98,10 +117,13 @@ async def analisar_cores(
         if not feat_hair:
             feat_hair = {"mean_lab": [35, 2, 5], "chroma_mean": 5}
 
-        # Aplicar calibração LAB (referência profissional) aos mean_lab
-        for feat in (feat_skin_rosto, feat_skin_braco, feat_hair):
-            if feat and feat.get("mean_lab"):
-                feat["mean_lab"] = _apply_calib(feat["mean_lab"])
+        # Aplicar calibração LAB por região (skin_face, skin_arm, hair)
+        if feat_skin_rosto and feat_skin_rosto.get("mean_lab"):
+            feat_skin_rosto["mean_lab"] = _apply_calib(feat_skin_rosto["mean_lab"], "skin_face")
+        if feat_skin_braco and feat_skin_braco.get("mean_lab"):
+            feat_skin_braco["mean_lab"] = _apply_calib(feat_skin_braco["mean_lab"], "skin_arm")
+        if feat_hair and feat_hair.get("mean_lab"):
+            feat_hair["mean_lab"] = _apply_calib(feat_hair["mean_lab"], "hair")
 
         skin_mean = feat_skin_rosto.get("mean_lab") or feat_skin_braco.get("mean_lab")
         braco_mean = feat_skin_braco.get("mean_lab")
