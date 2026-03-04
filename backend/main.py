@@ -1,7 +1,13 @@
 """
 API do módulo de colorimetria pessoal.
-Recebe fotos (rosto com folha branca, braço interno, cabelo, braço externo opcional), processa e retorna perfil + paletas.
-Usa calibração LAB (calib.json) quando existir para alinhar com referências profissionais.
+
+Fluxo de calibração (para que qualquer imagem seja lida corretamente):
+1) Luz: a foto com folha branca (rosto_com_papel) fornece a correção de branco (delta_a, delta_b).
+   Essa correção é aplicada a TODAS as fotos da requisição, normalizando a luz.
+2) Leituras: os offsets LAB em calib.json foram obtidos das imagens de referência (ref - nossa_leitura).
+   São correções numéricas fixas que ajustam o "peso" das leituras do pipeline ao espaço de cor da referência.
+   Uma vez calibrado, a MESMA correção é aplicada a qualquer imagem (rosto, braço, cabelo) por região.
+Assim, qualquer foto, após normalização da luz e aplicação dos offsets, é lida no mesmo padrão da referência.
 """
 import io
 import json
@@ -12,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Carrega calibração LAB se existir (gerada por backend/scripts/calibrate.py)
+# Calibração = offsets LAB por região (skin_face, skin_arm, hair). Aplicados a TODAS as imagens.
 _CALIB = None
 def _load_calib():
     global _CALIB
@@ -27,7 +33,7 @@ def _load_calib():
     return _CALIB
 
 def _apply_calib(lab_list, region_key=None):
-    """Aplica offset de calibração ao mean_lab [L, a, b]. region_key: 'skin_face', 'skin_arm', 'hair'."""
+    """Aplica o offset de calibração (peso das leituras) ao mean_lab. Mesma correção para qualquer imagem."""
     if not lab_list or len(lab_list) < 3:
         return lab_list
     calib = _load_calib()
@@ -80,7 +86,7 @@ async def analisar_cores(
         data_cabelo = await cabelo.read()
         data_braco_ext = await braco_externo.read() if braco_externo else None
 
-        # Correção de branco a partir da foto "rosto com papel" (quando fornecida)
+        # 1a) Calibração da luz: correção de branco a partir da foto com folha (aplicada a todas as fotos)
         wb_correction = None
         if rosto_com_papel:
             data_papel = await rosto_com_papel.read()
@@ -117,7 +123,7 @@ async def analisar_cores(
         if not feat_hair:
             feat_hair = {"mean_lab": [35, 2, 5], "chroma_mean": 5}
 
-        # Aplicar calibração LAB por região (skin_face, skin_arm, hair)
+        # 3a) Aplicar pesos da calibração (offsets LAB por região) — mesma correção para qualquer imagem
         if feat_skin_rosto and feat_skin_rosto.get("mean_lab"):
             feat_skin_rosto["mean_lab"] = _apply_calib(feat_skin_rosto["mean_lab"], "skin_face")
         if feat_skin_braco and feat_skin_braco.get("mean_lab"):

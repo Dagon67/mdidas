@@ -1,0 +1,11 @@
+/* CSS HEX - referência cabelo (extraído do algoritmo; substituir por análise profissional se disponível) */
+--hair-mean: #616567ff;
+--hair-cluster-1: #686c6eff;
+--hair-cluster-2: #9ba4a5ff;
+--hair-cluster-3: #3c3f42ff;
+
+/* CSS HSL */
+--hair-mean: hsla(210, 4%, 39%, 1);
+--hair-cluster-1: hsla(210, 4%, 42%, 1);
+--hair-cluster-2: hsla(195, 4%, 64%, 1);
+--hair-cluster-3: hsla(210, 5%, 25%, 1);

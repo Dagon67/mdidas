@@ -62,6 +62,14 @@ def segment_skin_region(img_bgr, face_mask=None):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     skin_mask = cv2.morphologyEx(skin_mask, cv2.MORPH_CLOSE, kernel)
     skin_mask = cv2.morphologyEx(skin_mask, cv2.MORPH_OPEN, kernel)
+    # Fallback: se não encontrou pele (ex.: braço externo mais bronzeado), usa região central
+    if np.sum(skin_mask) < 500:
+        h, w = img_bgr.shape[:2]
+        fallback = np.zeros((h, w), dtype=np.uint8)
+        x1, x2 = int(w * 0.1), int(w * 0.9)
+        y1, y2 = int(h * 0.1), int(h * 0.9)
+        fallback[y1:y2, x1:x2] = 255
+        skin_mask = cv2.bitwise_and(fallback, face_mask)
     return skin_mask
 
 

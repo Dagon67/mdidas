@@ -146,13 +146,17 @@ def main():
 
     import numpy as np
     # Calibração por região (skin_face, skin_arm, hair)
-    # skin_face: preferir offset de rosto_papel.jpg (cenário com papel = referência de uso)
+    # skin_face: offset de rosto_papel (cenário com papel)
+    # skin_arm: offset só de interno_braco.png (referência confiável; externo_braco pode ter fallback impreciso)
     by_region = {}
     for rk, offsets in offsets_by_region.items():
         if not offsets:
             continue
         if rk == "skin_face" and len(offsets) >= 1:
-            # Use primeiro offset (rosto_papel) para maximizar coincidência com foto que tem papel
+            first = offsets[0]
+            by_region[rk] = [round(first[0], 4), round(first[1], 4), round(first[2], 4)]
+        elif rk == "skin_arm":
+            # Usar só o primeiro (interno_braco) para não estragar com externo_braco
             first = offsets[0]
             by_region[rk] = [round(first[0], 4), round(first[1], 4), round(first[2], 4)]
         else:
