@@ -13,7 +13,7 @@ from processing.preprocess import preprocess_pipeline
 from processing.segment import segment_face_mediapipe, segment_skin_region, segment_hair_region, get_region_pixels
 from processing.extract import extract_region_features
 from processing.classify import infer_subtom, infer_valor, infer_croma, infer_contrast, classify_season
-from processing.recommend import generate_palettes, generate_recommendations_text
+from processing.recommend import generate_palettes, generate_recommendations_text, lab_to_hex
 
 app = FastAPI(title="Colorimetria Pessoal", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -84,7 +84,34 @@ async def analisar_cores(
         paletas = generate_palettes(subtom, valor, croma, contraste, season)
         recomendacoes = generate_recommendations_text(subtom, valor, croma, contraste, season)
 
-        # 6) Resposta estruturada
+        # 6) Cores por parte do corpo (para sugestões personalizadas por região)
+        def lab_to_hex_safe(lab_list):
+            if not lab_list or len(lab_list) < 3:
+                return "#888888"
+            return lab_to_hex(float(lab_list[0]), float(lab_list[1]), float(lab_list[2]))
+
+        cores_por_parte = {
+            "rosto": {
+                "hex": lab_to_hex_safe(feat_skin_rosto.get("mean_lab")),
+                "dica": "Maquiagem, golas e acessórios perto do rosto: prefira tons que harmonizem com essa pele.",
+            },
+            "braco_interno": {
+                "hex": lab_to_hex_safe(feat_skin_braco.get("mean_lab")),
+                "dica": "Subtom da pele do braço ajuda a definir quente/frio; use essa referência em roupas de mangas e pulseiras.",
+            },
+            "cabelo": {
+                "hex": lab_to_hex_safe(feat_hair.get("mean_lab")),
+                "dica": "Tingimentos, chapéus e lenços: cores que conversem com seu cabelo natural valorizam o conjunto.",
+            },
+        }
+
+        recomendacoes_por_parte = {
+            "rosto": "Para realçar o rosto: bases e blushes no seu subtom; evite cores que criem máscara.",
+            "braco_interno": "Pulseiras e mangas: tons neutros ou da sua paleta harmonizam com a pele exposta.",
+            "cabelo": "Cabelo define seu contraste; use a paleta sugerida para roupas e acessórios que equilibrem com a cabeça.",
+        }
+
+        # 7) Resposta estruturada
         return {
             "perfil_cromatico": {
                 "subtom": subtom,
@@ -97,6 +124,8 @@ async def analisar_cores(
             },
             "paletas": paletas,
             "recomendacoes_texto": recomendacoes,
+            "cores_por_parte": cores_por_parte,
+            "recomendacoes_por_parte": recomendacoes_por_parte,
             "metadados": {
                 "versao": "1.0",
                 "modelo": "regras",

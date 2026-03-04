@@ -43,6 +43,11 @@ h2 { font-size:16px; color:#6b8cff; margin:20px 0 10px; }
 .paleta { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 20px; }
 .paleta .swatch { width:48px; height:48px; border-radius:8px; border:2px solid rgba(255,255,255,.2); box-shadow:0 2px 8px rgba(0,0,0,.3); }
 .paleta .swatch span { display:block; width:100%; height:100%; border-radius:6px; }
+.cores-parte-item { margin-bottom:16px; padding:12px; background:rgba(13,19,42,.5); border-radius:8px; }
+.cores-parte-item h3 { font-size:14px; color:#6b8cff; margin:0 0 8px; }
+.cores-parte-item .swatch-row { display:flex; align-items:center; gap:12px; margin:6px 0; }
+.cores-parte-item .swatch { width:40px; height:40px; border-radius:8px; border:2px solid rgba(255,255,255,.2); flex-shrink:0; }
+.cores-parte-item .dica { font-size:13px; color:#9ca3af; line-height:1.5; }
 .recomendacoes { margin-top:16px; padding:16px; background:#0d132a; border-radius:10px; }
 .recomendacoes p { margin:8px 0; line-height:1.5; color:#eaeaff; font-size:14px; }
 .aviso-backend { padding:14px; background:rgba(251,191,36,.12); border:1px solid #fbbf24; border-radius:8px; color:#fcd34d; font-size:13px; margin-bottom:20px; line-height:1.5; }
@@ -67,13 +72,14 @@ iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fi
 
     <div class="instrucoes">
       <h3>Como tirar as fotos</h3>
+      <p style="margin-bottom:10px;">Para o app estabilizar o branco, <strong>coloque uma folha branca ao lado do rosto</strong> na foto do rosto. Veja exemplos:</p>
+      <p><a href="referencia_cor.html" style="color:#6b8cff; font-weight:600;">Ver guia com imagens de referência →</a></p>
       <ul>
-        <li><strong>Rosto:</strong> sem maquiagem, luz natural difusa, fundo neutro.</li>
+        <li><strong>Rosto:</strong> sem maquiagem, luz natural difusa; folha branca ou cartão cinza ao lado para calibrar.</li>
         <li><strong>Parte interna do braço:</strong> para subtom de pele.</li>
         <li><strong>Cabelo:</strong> próximo à raiz, sem luz direta.</li>
         <li><strong>Parte externa do braço (opcional):</strong> reação ao sol.</li>
         <li>Nenhuma roupa colorida visível; sem filtros, flash ou luz artificial direta.</li>
-        <li>Se possível, segure um objeto neutro (folha branca ou cartão cinza) perto do rosto.</li>
       </ul>
     </div>
 
@@ -110,6 +116,11 @@ iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fi
         <h2>Seu perfil cromático</h2>
         <div id="perfilConteudo"></div>
       </div>
+      <div class="perfil-box" id="coresPorParteBox">
+        <h2>Cores por parte do corpo</h2>
+        <p style="color:#9ca3af; font-size:13px; margin-bottom:12px;">Cada região analisada; use essas referências para maquiagem, roupas e acessórios.</p>
+        <div id="coresPorParteConteudo"></div>
+      </div>
       <div id="paletasConteudo"></div>
       <div class="recomendacoes">
         <h2>Recomendações</h2>
@@ -122,7 +133,8 @@ iframe[src*="auth/iframe"], iframe[id^="I0_"], iframe[name^="I0_"] { position:fi
 <script>
 (function(){ var s=location.search; if(/^\?v=\d+$/.test(s)||/[?&]v=\d+($|&)/.test(s)){ var q=s.replace(/\?v=\d+&?|&v=\d+&?|&v=\d+$/g,"").replace(/^\?&?$/,"")||""; history.replaceState(null,"",location.pathname+(q?"?"+q:"")); } })();
 
-var API_CORES_URL = "";
+// URL do backend de colorimetria (Web Service mdidas no Render)
+var API_CORES_URL = "https://mdidas.onrender.com";
 
 var firebaseConfig; try { firebaseConfig = JSON.parse(atob("eyJhcGlLZXkiOiJBSXphU3lBM3NkaWFCNGQ0dDdwRGl5YWVlMGZvY0RfZW1WQkpaRHciLCJhdXRoRG9tYWluIjoibW9kaS01MzY5ZC5maXJlYmFzZWFwcC5jb20iLCJwcm9qZWN0SWQiOiJtb2RpLTUzNjlkIiwic3RvcmFnZUJ1Y2tldCI6Im1vZGktNTM2OWQuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNjM5NjUyNzM5NTciLCJhcHBJZCI6IjE6NjM5NjUyNzM5NTc6d2ViOmMwMmIzMmZkOTY1Y2ZmNzA1YjBiOGMifQ==")); } catch(e) { firebaseConfig = { apiKey: "SUA_API_KEY" }; }
 if (!firebaseConfig || firebaseConfig.apiKey === "SUA_API_KEY") {
@@ -181,6 +193,21 @@ if (!firebaseConfig || firebaseConfig.apiKey === "SUA_API_KEY") {
         "<div class=\"linha\"><span class=\"tag\">Valor:</span> " + (p.valor || "-") + "</div>" +
         "<div class=\"linha\"><span class=\"tag\">Croma:</span> " + (p.croma || "-") + "</div>" +
         "<div class=\"linha\"><span class=\"tag\">Contraste:</span> " + (p.contraste || "-") + "</div>";
+      var cp = data.cores_por_parte || {};
+      var labels = { rosto: "Rosto", braco_interno: "Braço interno", cabelo: "Cabelo" };
+      var htmlParte = "";
+      ["rosto", "braco_interno", "cabelo"].forEach(function(k) {
+        var item = cp[k];
+        if (!item) return;
+        var hex = item.hex || "#888";
+        var dica = item.dica || "";
+        htmlParte += "<div class=\"cores-parte-item\"><h3>" + (labels[k] || k) + "</h3>";
+        htmlParte += "<div class=\"swatch-row\"><div class=\"swatch\" style=\"background:" + hex + "\" title=\"" + hex + "\"></div><span style=\"color:#9ca3af; font-size:13px\">" + hex + "</span></div>";
+        if (dica) htmlParte += "<p class=\"dica\">" + dica + "</p>";
+        htmlParte += "</div>";
+      });
+      document.getElementById("coresPorParteConteudo").innerHTML = htmlParte || "<p class=\"dica\">Cores por parte não disponíveis.</p>";
+
       var paletas = data.paletas || {};
       var htmlPaletas = "";
       ["principal", "neutra", "destaque"].forEach(function(nome) {
